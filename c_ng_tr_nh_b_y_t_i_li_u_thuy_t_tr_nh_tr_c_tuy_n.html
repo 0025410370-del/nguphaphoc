@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocHub Pro - Trình Bày Tài Liệu & Thuyết Trình Trực Tuyến</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Mammoth.js để chuyển đổi file .docx sang HTML -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    
+    <!-- jsPDF để tạo file PDF mẫu trực tiếp trên trình duyệt -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Tùy chỉnh thanh cuộn */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Định dạng nội dung văn bản Word được render từ Mammoth */
+        .word-content h1 { font-size: 1.875rem; font-weight: 700; color: #0f172a; margin-top: 1.5rem; margin-bottom: 0.75rem; line-height: 1.3; }
+        .word-content h2 { font-size: 1.5rem; font-weight: 600; color: #1e293b; margin-top: 1.25rem; margin-bottom: 0.6rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3rem; }
+        .word-content h3 { font-size: 1.25rem; font-weight: 600; color: #334155; margin-top: 1rem; margin-bottom: 0.5rem; }
+        .word-content p { font-size: 1rem; line-height: 1.75; color: #334155; margin-bottom: 1rem; }
+        .word-content ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; color: #334155; }
+        .word-content ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 1rem; color: #334155; }
+        .word-content li { margin-bottom: 0.4rem; line-height: 1.6; }
+        .word-content table { width: 100%; border-collapse: collapse; margin: 1.25rem 0; font-size: 0.95rem; }
+        .word-content th, .word-content td { border: 1px solid #cbd5e1; padding: 0.65rem 0.85rem; text-align: left; }
+        .word-content th { background-color: #f8fafc; font-weight: 600; color: #0f172a; }
+        .word-content blockquote { border-left: 4px solid #3b82f6; background: #eff6ff; padding: 0.75rem 1rem; margin: 1rem 0; border-radius: 0 0.5rem 0.5rem 0; color: #1e40af; }
+
+        /* Không gian làm việc Mindmap phong cách Editorial / Spatial Canvas */
+        .mindmap-viewport {
+            background-color: #faf9f6;
+            background-image: 
+                radial-gradient(circle at 20% 20%, rgba(244, 63, 94, 0.04) 0%, transparent 45%),
+                radial-gradient(circle at 80% 80%, rgba(99, 102, 241, 0.05) 0%, transparent 45%),
+                radial-gradient(#d6d3d1 1.1px, transparent 1.1px);
+            background-size: 100% 100%, 100% 100%, 22px 22px;
+            cursor: grab;
+            user-select: none;
+            touch-action: none;
+        }
+        .mindmap-viewport:active {
+            cursor: grabbing;
+        }
+        .mindmap-camera-layer {
+            transform-origin: 0 0;
+            will-change: transform;
+        }
+        .mindmap-camera-smooth {
+            transition: transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .mindmap-node-card {
+            transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .mindmap-node-card:hover {
+            transform: translateY(-2px);
+        }
+        .mindmap-branch-path {
+            transition: stroke-opacity 0.45s ease, stroke-width 0.35s ease;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- HEADER / THANH ĐIỀU HƯỚNG CHÍNH -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-wrap items-center justify-between py-3 gap-3">
+                <!-- Logo & Tiêu đề dự án -->
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md">
+                        <i data-lucide="layers" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h1 id="projectTitleDisplay" class="font-bold text-slate-900 text-base sm:text-lg leading-tight">Adverbs in the English Language — Group 4</h1>
+                        <p id="projectSubtitleDisplay" class="text-xs text-slate-500 hidden sm:block">Dong Thap University • Course EN4218P02 • Advisor: ThS. Lê Nhựt Long</p>
+                    </div>
+                </div>
+
+                <!-- Các nút hành động nhanh -->
+                <div class="flex items-center gap-2">
+                    <button onclick="openSettingsModal()" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-sm transition">
+                        <i data-lucide="settings" class="w-4 h-4 text-blue-600"></i>
+                        <span>Cài đặt nội dung</span>
+                    </button>
+                    <button onclick="exportStandaloneHTML()" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm shadow-sm transition" title="Tải về file HTML đã đóng gói sẵn dữ liệu để đưa lên mạng chia sẻ link">
+                        <i data-lucide="share-2" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">Xuất Web Chia Sẻ</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Thanh Tabs chuyển đổi chế độ xem (Mặc định mở Mindmap để thuyết trình ngay) -->
+            <nav class="flex items-center gap-1.5 overflow-x-auto pb-2.5 pt-1 no-scrollbar" id="mainNavTabs">
+                <button onclick="switchTab('mindmap')" data-tab="mindmap" class="tab-btn active flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition bg-blue-600 text-white shadow-sm">
+                    <i data-lucide="network" class="w-4 h-4"></i>
+                    <span>Sơ đồ tư duy (Mindmap)</span>
+                </button>
+                <button onclick="switchTab('canva')" data-tab="canva" class="tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition text-slate-600 hover:bg-slate-100">
+                    <i data-lucide="presentation" class="w-4 h-4 text-purple-500"></i>
+                    <span>Slide Canva</span>
+                </button>
+                <button onclick="switchTab('word')" data-tab="word" class="tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition text-slate-600 hover:bg-slate-100">
+                    <i data-lucide="file-text" class="w-4 h-4 text-blue-500"></i>
+                    <span>Tài liệu Word / Báo cáo</span>
+                </button>
+                <button onclick="switchTab('pdf')" data-tab="pdf" class="tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition text-slate-600 hover:bg-slate-100">
+                    <i data-lucide="book-open" class="w-4 h-4 text-rose-500"></i>
+                    <span>Bài tập & Tài liệu tham khảo (PDF)</span>
+                </button>
+                <button onclick="switchTab('dashboard')" data-tab="dashboard" class="tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition text-slate-600 hover:bg-slate-100">
+                    <i data-lucide="layout-grid" class="w-4 h-4 text-emerald-500"></i>
+                    <span>Xem tổng hợp</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- KHU VỰC HIỂN THỊ NỘI DUNG CHÍNH -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        
+        <!-- 1. CHẾ ĐỘ XEM TỔNG HỢP (DASHBOARD) -->
+        <div id="view-dashboard" class="hidden space-y-6">
+            <!-- Thẻ thống kê / tóm tắt nhanh -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div onclick="switchTab('word')" class="cursor-pointer bg-white p-4 rounded-2xl border border-slate-200 hover:border-blue-400 hover:shadow-md transition flex items-center gap-3.5">
+                    <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                        <i data-lucide="file-text" class="w-5 h-5"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Tài liệu chính</p>
+                        <p id="dash-word-name" class="text-sm font-semibold text-slate-800 truncate">Báo_cáo_tổng_quan.docx</p>
+                    </div>
+                </div>
+
+                <div onclick="switchTab('canva')" class="cursor-pointer bg-white p-4 rounded-2xl border border-slate-200 hover:border-purple-400 hover:shadow-md transition flex items-center gap-3.5">
+                    <div class="w-11 h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                        <i data-lucide="presentation" class="w-5 h-5"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Bài thuyết trình</p>
+                        <p id="dash-canva-name" class="text-sm font-semibold text-slate-800 truncate">Slide Thuyết Trình Canva</p>
+                    </div>
+                </div>
+
+                <div onclick="switchTab('mindmap')" class="cursor-pointer bg-white p-4 rounded-2xl border border-slate-200 hover:border-emerald-400 hover:shadow-md transition flex items-center gap-3.5">
+                    <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                        <i data-lucide="network" class="w-5 h-5"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Sơ đồ tư duy</p>
+                        <p id="dash-mindmap-count" class="text-sm font-semibold text-slate-800 truncate">12 nhánh ý tưởng</p>
+                    </div>
+                </div>
+
+                <div onclick="switchTab('pdf')" class="cursor-pointer bg-white p-4 rounded-2xl border border-slate-200 hover:border-rose-400 hover:shadow-md transition flex items-center gap-3.5">
+                    <div class="w-11 h-11 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                        <i data-lucide="book-open" class="w-5 h-5"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Bài tập & Tham khảo</p>
+                        <p id="dash-pdf-name" class="text-sm font-semibold text-slate-800 truncate">15-Question Test & PDF</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lưới hiển thị cả 4 thành phần trên 1 trang -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Khung 1: Slide Canva -->
+                <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                    <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+                            <h2 class="font-semibold text-slate-800 text-sm">1. Slide Thuyết Trình (Canva)</h2>
+                        </div>
+                        <button onclick="switchTab('canva')" class="text-xs font-medium text-purple-600 hover:text-purple-700 flex items-center gap-1">
+                            <span>Mở rộng</span>
+                            <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                    <div class="p-4 flex-1 flex flex-col">
+                        <div id="dashCanvaContainer" class="w-full aspect-video rounded-xl overflow-hidden border border-slate-200 bg-slate-900 relative">
+                            <!-- Nội dung Canva được render động bằng JS -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Khung 2: Sơ đồ tư duy Mindmap -->
+                <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                    <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                            <h2 class="font-semibold text-slate-800 text-sm">2. Sơ Đồ Tư Duy (Tổng thể → Chi tiết)</h2>
+                        </div>
+                        <button onclick="switchTab('mindmap')" class="text-xs font-medium text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+                            <span>Khám phá tương tác</span>
+                            <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                    <div class="p-4 flex-1 flex flex-col">
+                        <div class="w-full aspect-video rounded-xl overflow-hidden border border-slate-200 relative mindmap-viewport" id="dashMindmapBox" onclick="switchTab('mindmap')">
+                            <div id="dashMindmapCanvas" class="w-full h-full relative"></div>
+                            <div class="absolute bottom-2.5 right-2.5 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full text-[11px] font-medium text-slate-600 border border-slate-200 shadow-sm flex items-center gap-1.5 pointer-events-none">
+                                <i data-lucide="sparkles" class="w-3 h-3 text-emerald-500"></i>
+                                <span>Bấm để mở không gian Mindmap & trình chiếu từng nhánh</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Khung 3: Nội dung tài liệu Word -->
+                <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                    <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                            <h2 class="font-semibold text-slate-800 text-sm">3. Tài Liệu Word (.docx)</h2>
+                        </div>
+                        <button onclick="switchTab('word')" class="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                            <span>Đọc toàn văn</span>
+                            <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                    <div class="p-5 h-80 overflow-y-auto bg-white">
+                        <div id="dashWordPreview" class="word-content text-sm"></div>
+                    </div>
+                </section>
+
+                <!-- Khung 4: Tài liệu tham khảo PDF -->
+                <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                    <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                            <h2 class="font-semibold text-slate-800 text-sm">4. Bài Tập 15 Câu & Tài Liệu Tham Khảo</h2>
+                        </div>
+                        <button onclick="switchTab('pdf')" class="text-xs font-medium text-rose-600 hover:text-rose-700 flex items-center gap-1">
+                            <span>Làm bài & Xem PDF</span>
+                            <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                    <div class="p-4 h-80 flex flex-col">
+                        <div id="dashPdfContainer" class="w-full h-full rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
+                            <!-- PDF iframe render động -->
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- 2. CHẾ ĐỘ XEM CHI TIẾT: TÀI LIỆU WORD -->
+        <div id="view-word" class="hidden space-y-4">
+            <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                        <i data-lucide="file-text" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 id="wordFileTitle" class="font-bold text-slate-800">Tài_liệu_nội_dung_chính.docx</h2>
+                        <p class="text-xs text-slate-500">Hỗ trợ tải file .docx trực tiếp hoặc nhúng link Google Docs / OneDrive</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <label class="cursor-pointer inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition shadow-sm">
+                        <i data-lucide="upload" class="w-4 h-4"></i>
+                        <span>Tải lên file .docx</span>
+                        <input type="file" accept=".docx" class="hidden" onchange="handleWordUpload(event)">
+                    </label>
+                    <button onclick="openSettingsModal('word')" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium transition">
+                        <i data-lucide="link" class="w-4 h-4"></i>
+                        <span>Nhúng Link Docs</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Khung giấy hiển thị nội dung Word -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-10 max-w-4xl mx-auto min-h-[65vh]">
+                <div id="fullWordContainer" class="word-content"></div>
+            </div>
+        </div>
+
+        <!-- 3. CHẾ ĐỘ XEM CHI TIẾT: SLIDE CANVA -->
+        <div id="view-canva" class="hidden space-y-4">
+            <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                        <i data-lucide="presentation" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 id="canvaSlideTitle" class="font-bold text-slate-800">Bài Thuyết Trình Canva</h2>
+                        <p class="text-xs text-slate-500">Dán đường dẫn chia sẻ Canva hoặc mã nhúng để trình chiếu trực tiếp</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <div class="flex items-center bg-slate-100 rounded-xl p-1 border border-slate-200">
+                        <input type="text" id="quickCanvaInput" placeholder="Dán link Canva tại đây..." class="bg-transparent px-3 py-1.5 text-sm focus:outline-none w-48 sm:w-64 text-slate-700">
+                        <button onclick="applyQuickCanvaLink()" class="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold transition">
+                            Cập nhật
+                        </button>
+                    </div>
+                    <a id="openCanvaExternalBtn" href="https://www.canva.com/design/DAHWTp9gfEc/cy9QDjKUFnXuhphKrEjWTQ/edit" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 text-sm font-medium transition border border-purple-200">
+                        <i data-lucide="external-link" class="w-4 h-4"></i>
+                        <span>Mở trên Canva</span>
+                    </a>
+                    <button onclick="toggleFullscreen('fullCanvaWrapper')" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium transition">
+                        <i data-lucide="maximize" class="w-4 h-4"></i>
+                        <span>Toàn màn hình</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Khung trình chiếu Canva -->
+            <div id="fullCanvaWrapper" class="bg-slate-900 rounded-2xl border border-slate-200 shadow-lg overflow-hidden aspect-video max-h-[75vh] w-full mx-auto relative">
+                <div id="fullCanvaContainer" class="w-full h-full"></div>
+            </div>
+        </div>
+
+        <!-- 4. CHẾ ĐỘ XEM CHI TIẾT: SƠ ĐỒ TƯ DUY (MINDMAP - MẶC ĐỊNH HIỂN THỊ) -->
+        <div id="view-mindmap" class="space-y-4">
+            <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-sm">
+                        <i data-lucide="network" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-slate-800">Mindmap: Adverbs in the English Language (From Definition to Inversion)</h2>
+                        <p class="text-xs text-slate-500">Chạm từng nhánh để phóng to chi tiết • Dùng thanh điều hướng bên dưới để thuyết trình từ tổng thể đến nhánh nhỏ</p>
+                    </div>
+                </div>
+
+                <!-- Thanh công cụ Mindmap -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <div class="inline-flex items-center bg-slate-100 rounded-xl p-1 border border-slate-200">
+                        <button onclick="zoomMindmap(-0.18)" class="p-1.5 rounded-lg hover:bg-white text-slate-700 transition" title="Thu nhỏ">
+                            <i data-lucide="zoom-out" class="w-4 h-4"></i>
+                        </button>
+                        <span id="mindmapZoomLabel" class="px-2 text-xs font-semibold text-slate-600 min-w-[46px] text-center">100%</span>
+                        <button onclick="zoomMindmap(0.18)" class="p-1.5 rounded-lg hover:bg-white text-slate-700 transition" title="Phóng to">
+                            <i data-lucide="zoom-in" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                    <button onclick="fitMindmapOverview(true)" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium transition shadow-sm">
+                        <i data-lucide="scan" class="w-3.5 h-3.5"></i>
+                        <span>Xem tổng thể</span>
+                    </button>
+                    <button id="toggleExpandAllBtn" onclick="toggleExpandCollapseAll()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-medium transition border border-emerald-200/70">
+                        <i data-lucide="chevrons-right" class="w-3.5 h-3.5"></i>
+                        <span id="toggleExpandAllLabel">Thu gọn nhánh phụ</span>
+                    </button>
+                    <button onclick="toggleFullscreen('fullMindmapViewport')" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition" title="Toàn màn hình">
+                        <i data-lucide="maximize" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="openSettingsModal('mindmap')" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium transition shadow-sm">
+                        <i data-lucide="code-2" class="w-3.5 h-3.5"></i>
+                        <span>JSON</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Khung vẽ Spatial Canvas Mindmap tương tác -->
+            <div class="relative w-full h-[74vh] rounded-2xl border border-stone-200/90 shadow-inner overflow-hidden mindmap-viewport" id="fullMindmapViewport">
+                
+                <!-- Lớp Camera vô tận chứa SVG đường nối + HTML Thẻ nhánh giàu nội dung -->
+                <div id="mindmapCameraLayer" class="mindmap-camera-layer mindmap-camera-smooth absolute top-0 left-0">
+                    <svg id="fullMindmapLinesSvg" class="overflow-visible pointer-events-none absolute top-0 left-0"></svg>
+                    <div id="fullMindmapNodesLayer" class="relative"></div>
+                </div>
+
+                <!-- Thanh chỉ dẫn nhỏ góc trên trái -->
+                <div class="absolute top-3.5 left-3.5 z-10 pointer-events-none hidden sm:flex items-center gap-2 bg-white/85 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-stone-200/80 shadow-sm text-[11px] text-stone-600">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Kéo nền để di chuyển • Lăn chuột để thu phóng • Chạm nhánh để đi sâu</span>
+                </div>
+
+                <!-- Hộp nổi chỉnh sửa chi tiết nhánh đang chọn (Góc trên phải) -->
+                <div id="nodeQuickEditor" class="hidden absolute top-3.5 right-3.5 w-80 sm:w-96 bg-white/95 backdrop-blur-md p-4 rounded-2xl border border-stone-200 shadow-2xl z-30">
+                    <div class="flex items-center justify-between mb-3 pb-2 border-b border-stone-100">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                            <span class="text-xs font-bold uppercase tracking-wider text-stone-700">Chi Tiết & Chỉnh Sửa Nhánh</span>
+                        </div>
+                        <button onclick="closeNodeEditor()" class="p-1 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+
+                    <div class="space-y-2.5">
+                        <div>
+        <!-- 5. CHẾ ĐỘ XEM CHI TIẾT: BÀI TẬP 15 CÂU TƯƠNG TÁC & TÀI LIỆU THAM KHẢO (PDF) -->
+        <div id="view-pdf" class="hidden space-y-5">
+            <!-- Thanh tiêu đề & chuyển đổi chế độ con -->
+            <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                        <i data-lucide="clipboard-check" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 id="pdfFileTitle" class="font-bold text-slate-800">15-Question Test (bài tập nph.docx) & Tài Liệu Tham Khảo</h2>
+                        <p class="text-xs text-slate-500">Luyện tập tương tác trực tiếp trên lớp hoặc mở trình đọc file PDF & nguồn tham khảo</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <div class="inline-flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                        <button id="subTabQuizBtn" onclick="switchRefSubTab('quiz')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 text-white shadow-sm transition">
+                            1. Đề kiểm tra 15 câu (Tương tác)
+                        </button>
+                        <button id="subTabPdfBtn" onclick="switchRefSubTab('resources')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">
+                            2. Nguồn tham khảo & Trình xem PDF
+                        </button>
+                    </div>
+                    <label class="cursor-pointer inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium transition shadow-sm">
+                        <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                        <span>Tải lên file .pdf</span>
+                        <input type="file" accept=".pdf,application/pdf" class="hidden" onchange="handlePdfUpload(event)">
+                    </label>
+                </div>
+            </div>
+
+            <!-- KHU VỰC CON A: BÀI TẬP 15 CÂU TƯƠNG TÁC (TỪ FILE BÀI TẬP NPH.DOCX) -->
+            <div id="refSubViewQuiz" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 max-w-4xl mx-auto space-y-8">
+                <div class="border-b border-slate-200 pb-5 flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <span class="inline-block px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 text-[11px] font-bold uppercase tracking-wider mb-1.5">Worksheet • bài tập nph.docx</span>
+                        <h3 class="text-xl sm:text-2xl font-bold text-slate-900">15-QUESTION TEST: ADVERBS & FORMING ADVERBS</h3>
+                        <p class="text-xs text-slate-500 mt-1">Chọn đáp án trực tiếp bên dưới và bấm <strong>"Chấm điểm & Xem đáp án"</strong> để đối chiếu kết quả.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="gradePracticeQuiz()" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm transition">
+                            <i data-lucide="check-circle" class="w-4 h-4"></i>
+                            <span>Chấm điểm & Xem đáp án</span>
+                        </button>
+                        <button onclick="resetPracticeQuiz()" class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition">
+                            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                            <span>Làm lại</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Hộp thông báo điểm số sau khi chấm -->
+                <div id="quizScoreBanner" class="hidden p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white font-bold flex items-center justify-center text-sm" id="quizScoreBadge">10/10</div>
+                        <div>
+                            <div class="font-bold text-emerald-900 text-sm" id="quizScoreHeadline">Kết quả trắc nghiệm (Phần I & II)</div>
+                            <div class="text-xs text-emerald-700">Đáp án chi tiết cho cả 3 phần (bao gồm Phần III tự luận) đã được mở bên dưới từng câu hỏi.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PART I: TRUE / FALSE -->
+                <div class="space-y-4">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-bold">PART I</span>
+                        <h4 class="font-bold text-slate-800 text-base">TRUE / FALSE (5 questions) — Read each sentence and select T (True) or F (False)</h4>
+                    </div>
+                    <div id="quizPart1Container" class="space-y-3"></div>
+                </div>
+
+                <!-- PART II: MULTIPLE CHOICE -->
+                <div class="space-y-4 pt-2 border-t border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 text-xs font-bold">PART II</span>
+                        <h4 class="font-bold text-slate-800 text-base">MULTIPLE CHOICE (5 questions) — Choose the correct answer</h4>
+                    </div>
+                    <div id="quizPart2Container" class="space-y-4"></div>
+                </div>
+
+                <!-- PART III: FILL IN THE BLANKS / SHORT WRITING -->
+                <div class="space-y-4 pt-2 border-t border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 text-xs font-bold">PART III</span>
+                        <h4 class="font-bold text-slate-800 text-base">FILL IN THE BLANKS & SENTENCE TRANSFORMATION (5 questions)</h4>
+                    </div>
+                    <div id="quizPart3Container" class="space-y-4"></div>
+                </div>
+            </div>
+
+            <!-- KHU VỰC CON B: DANH MỤC NGUỒN THAM KHẢO & TRÌNH ĐỌC PDF -->
+            <div id="refSubViewResources" class="hidden space-y-4">
+                <!-- Danh mục nguồn tham khảo chuẩn từ Báo cáo Nhóm 4 -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                    <h3 class="font-bold text-slate-800 text-sm uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <i data-lucide="bookmark" class="w-4 h-4 text-rose-500"></i>
+                        <span>Academic & Video Resources (Group 4 Bibliography)</span>
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                        <a href="https://dictionary.cambridge.org/us/grammar/british-grammar/adverbs_2" target="_blank" rel="noopener noreferrer" class="p-3 rounded-xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/40 transition flex items-start gap-2.5">
+                            <i data-lucide="globe" class="w-4 h-4 text-blue-600 shrink-0 mt-0.5"></i>
+                            <div>
+                                <div class="font-semibold text-slate-800">Cambridge Dictionary — Adverbs: types</div>
+                                <div class="text-slate-500 mt-0.5">British Grammar Reference • dictionary.cambridge.org</div>
+                            </div>
+                        </a>
+                        <div class="p-3 rounded-xl border border-slate-200 bg-slate-50/60 flex items-start gap-2.5">
+                            <i data-lucide="book" class="w-4 h-4 text-indigo-600 shrink-0 mt-0.5"></i>
+                            <div>
+                                <div class="font-semibold text-slate-800">A Grammar of The English Language (2015)</div>
+                                <div class="text-slate-500 mt-0.5">Lê Huy Trường, Đặng Đình Thiện, Trần Huy Phương — Hanoi University English Dept.</div>
+                            </div>
+                        </a>
+                        <a href="https://www.youtube.com/watch?v=QSNRsq7exS4" target="_blank" rel="noopener noreferrer" class="p-3 rounded-xl border border-slate-200 hover:border-rose-400 hover:bg-rose-50/40 transition flex items-start gap-2.5">
+                            <i data-lucide="youtube" class="w-4 h-4 text-rose-600 shrink-0 mt-0.5"></i>
+                            <div>
+                                <div class="font-semibold text-slate-800">The English Channel — Inversion after adverbs of location & direction</div>
+                                <div class="text-slate-500 mt-0.5">Video Lesson • youtube.com/watch?v=QSNRsq7exS4</div>
+                            </div>
+                        </a>
+                        <a href="https://www.youtube.com/watch?v=2icNyyq3eQY&list=PLneD3v3XPN4ZKwsxYxh23OPoiu5GMAktd&index=2" target="_blank" rel="noopener noreferrer" class="p-3 rounded-xl border border-slate-200 hover:border-rose-400 hover:bg-rose-50/40 transition flex items-start gap-2.5">
+                            <i data-lucide="youtube" class="w-4 h-4 text-rose-600 shrink-0 mt-0.5"></i>
+                            <div>
+                                <div class="font-semibold text-slate-800">LINGUANI — Inversion in English Series (Steps 2, 3, 4 & 7)</div>
+                                <div class="text-slate-500 mt-0.5">Negative adverbials, sentence-rebuilding, linking & movement inversion</div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Khung trình đọc PDF -->
+                <div class="bg-slate-800 rounded-2xl border border-slate-200 shadow-lg overflow-hidden h-[72vh] w-full">
+                    <div id="fullPdfContainer" class="w-full h-full"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- MODAL CÀI ĐẶT NỘI DUNG -->
+    <div id="settingsModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+                <div class="flex items-center gap-2.5">
+                    <i data-lucide="sliders" class="w-5 h-5 text-blue-600"></i>
+                    <h3 class="font-bold text-slate-800">Cài Đặt Nội Dung & Liên Kết</h3>
+                </div>
+                <button onclick="closeSettingsModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto space-y-4 text-sm">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Tiêu đề dự án / bài thuyết trình</label>
+                        <input type="text" id="cfgProjectTitle" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Phụ đề / Thông tin nhóm</label>
+                        <input type="text" id="cfgProjectSubtitle" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Đường dẫn Slide Canva (hoặc mã nhúng)</label>
+                    <input type="text" id="cfgCanvaUrl" placeholder="https://www.canva.com/design/..." class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-purple-500">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Link Google Docs (Tùy chọn thay thế Word)</label>
+                        <input type="text" id="cfgWordUrl" placeholder="https://docs.google.com/document/..." class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Link PDF trực tuyến (Tùy chọn)</label>
+                        <input type="text" id="cfgPdfUrl" placeholder="https://example.com/file.pdf" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-rose-500">
+                    </div>
+                </div>
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-semibold text-slate-600">Cấu trúc dữ liệu Mindmap (JSON)</label>
+                        <button onclick="resetDefaultMindmap()" class="text-xs font-medium text-emerald-600 hover:underline">Khôi phục Mindmap chuẩn</button>
+                    </div>
+                    <textarea id="cfgMindmapJson" rows="7" class="w-full px-3 py-2 font-mono text-xs border border-slate-300 rounded-xl bg-slate-50 focus:outline-none focus:border-emerald-500"></textarea>
+                </div>
+            </div>
+            <div class="px-6 py-3.5 border-t border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-2">
+                <button onclick="resetAllToSample()" class="px-3.5 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 transition">
+                    Đặt lại mặc định
+                </button>
+                <div class="flex items-center gap-2">
+                    <button onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-200 transition">Hủy</button>
+                    <button onclick="saveAllSettings()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition">Lưu thay đổi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- THÔNG BÁO TOAST -->
+    <div id="toastNotification" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-2.5 text-sm font-medium">
+            <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+            <span id="toastMessage">Đã lưu thay đổi!</span>
+        </div>
+    </div>
+
+    <!-- SCRIPT XỬ LÝ LOGIC TOÀN BỘ ỨNG DỤNG -->
+    <script>
+        // =========================================================================
+        // 1. KHỞI TẠO TRẠNG THÁI & DỮ LIỆU MẶC ĐỊNH (GROUP 4 - ĐH ĐỒNG THÁP)
+        // =========================================================================
+        const DEFAULT_STATE = {
+            title: "Adverbs in the English Language — Group 4",
+            subtitle: "Dong Thap University • Course EN4218P02 • Advisor: ThS. Lê Nhựt Long",
+            wordMode: "html",
+            wordTitle: "GROUP 4 - NGỮ PHÁP HỌC (Báo cáo đầy đủ).docx",
+            wordUrl: "",
+            wordHtml: `
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:20px;">
+                    <p style="margin:0;font-size:0.85rem;color:#475569;"><strong>TRƯỜNG ĐẠI HỌC ĐỒNG THÁP — KHOA NGOẠI NGỮ</strong> • Ngành: Sư phạm Tiếng Anh (Khóa 2025–2029) • Năm học: 2026–2027</p>
+                    <h1 style="margin-top:8px;margin-bottom:6px;">BÀI BÁO CÁO (EN4218P02): ADVERBS IN THE ENGLISH LANGUAGE</h1>
+                    <p style="margin:0;color:#1e40af;font-weight:600;">Nhóm 4 • Giảng viên hướng dẫn: ThS. Lê Nhựt Long • Đồng Tháp, tháng 9/2026</p>
+                </div>
+
+                <h2>MEMBER OF GROUP 4</h2>
+                <table>
+                    <thead>
+                        <tr><th>Full Name</th><th>Student ID</th><th>Functions</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>ĐỊNH QUỐC KHÁNH</td><td>0025410369</td><td>Definition and classification (adverbs of manner and place), warm up</td></tr>
+                        <tr><td>LÝ GIA BẢO</td><td>0025410357</td><td>Comparison of adverb, documentation coordinator</td></tr>
+                        <tr><td>VÕ HOÀI NAM</td><td>0025410285</td><td>Form of adverbs and adverb formation, editor</td></tr>
+                        <tr><td>HUỲNH MAI HÂN</td><td>0025410370</td><td>Inversion after the adverb, summarizer</td></tr>
+                        <tr><td>CHÂU GIA LINH</td><td>0025410645</td><td>Classification (adverbs of time, frequency, degree), checking</td></tr>
+                    </tbody>
+                </table>
+
+                <h2>WARM-UPS & CHECKING</h2>
+                <blockquote><strong>Warm-up Activity ("Hands Up If It's You!"):</strong> 10 daily routine statements highlighting frequency adverbs (<em>always, usually, often, sometimes, rarely, hardly ever, never</em>) — contrasting placement before main verbs (<em>often drink</em>) vs. after <em>be</em> (<em>am always hungry</em>).</blockquote>
+                <ul>
+                    <li><strong>Gap-Fill Checking Answers:</strong> (1) A. modify • (2) C. Degree • (3) C. Comparative • (4) B. Focus • (5) A. Inversion.</li>
+                    <li><strong>True/False Key:</strong> 1. True (<em>Here it comes / There she goes</em> — no inversion with pronouns) • 2. False (<em>almost</em> is strictly an adverb of degree, not an intensifier) • 3. True (<em>hard</em> vs. <em>hardly</em>) • 4. True (<em>early – earlier – earliest</em>) • 5. False (time adverbs have very flexible positions).</li>
+                    <li><strong>Quick Check MCQ Key:</strong> 1. B (<em>shortly</em> = soon) • 2. C (Manner → Place → Time: <em>silently in the library all day</em>) • 3. B (<em>monthly</em> = Noun + -ly, both adj & adv) • 4. B (<em>Economically</em> = Viewpoint; <em>perhaps</em> = Truth).</li>
+                </ul>
+
+                <h1>I. DEFINITION</h1>
+                <h3>1. Core Definition and Scope of Modification</h3>
+                <p>An adverb is a part of speech that includes words giving meaning to a verb, an adjective, another adverb, or an entire sentence. Semantically, adverbs express circumstantial details attending an action or quality, answering questions regarding <strong>manner (how)</strong>, <strong>place (where)</strong>, <strong>time (when)</strong>, <strong>frequency (how often)</strong>, and <strong>degree/intensity (how much / to what extent)</strong>.</p>
+                <h3>2. The Heterogeneous Nature of the Word Class</h3>
+                <p>Grammarians describe the adverb as a heterogeneous word class grouping distinct syntactic sub-classes: <strong>Intensifiers</strong> (<em>very, quite</em>), <strong>Negative particles</strong> (<em>not</em>), and <strong>Sentence connectors / Conjuncts</strong> (<em>however, moreover</em>).</p>
+                <h3>3. Adverbial Modifier Units (Word, Phrase, Clause)</h3>
+                <ul>
+                    <li><strong>Adverb (Word Level):</strong> Single-word lexical item (e.g., <em>softly, hard</em>).</li>
+                    <li><strong>Adverb Phrase (Phrase Level):</strong> Headed by an adverb (<em>very quickly</em>) or functioning adverbially (<em>in a soft voice, in the library</em>).</li>
+                    <li><strong>Adverb Clause (Clause Level):</strong> Subordinate clause with subject + finite verb (<em>whenever she has a cold</em>).</li>
+                </ul>
+
+                <h1>II. CLASSIFICATION</h1>
+                <ul>
+                    <li><strong>1. Adverbs of Manner (How?):</strong> Usually Adj + <em>-ly</em> (<em>plainly, beautifully, happily</em>); irregulars (<em>fast, hard, well</em>); prepositional phrases (<em>by bus, in a loud voice, in a hurry</em>). Placed after main verb/object or clause-initially for emphasis.</li>
+                    <li><strong>2. Adverbs of Place (Where? / Where to? / Where from?):</strong> Single words (<em>abroad, ahead, here, there</em>), compounds (<em>anywhere, far away</em>), phrases (<em>in the library, from New York</em>). Standard end-of-clause order: <strong>Manner → Place → Time</strong>.</li>
+                    <li><strong>3. Adverbs of Time (When? / Since when? / How long?):</strong> Definite time (<em>yesterday, today</em>), duration (<em>for a year, since last year</em>), indefinite time (<em>now, soon, eventually</em>). Very flexible positioning.</li>
+                    <li><strong>4. Adverbs of Frequency (How often?):</strong> <em>Always, frequently, usually, often, sometimes, rarely, never</em>. Typically mid-position (before main verbs, after <em>be</em>).</li>
+                    <li><strong>5. Adverbs of Degree (To what extent?):</strong> <em>Fairly, rather, hardly, enough, too, very, completely</em>. Usually precede the modified word.</li>
+                    <li><strong>6. Other Specialized Sub-Classes:</strong>
+                        <ul>
+                            <li><em>6.1 Focus Adverbs:</em> Highlight or limit information (<em>only, just, even, also, especially, mainly</em>).</li>
+                            <li><em>6.2 Viewpoint Adverbs:</em> Answer "From what point of view?" (<em>personally, economically</em>).</li>
+                            <li><em>6.3 Truth Adverbs:</em> Express certainty/uncertainty (<em>certainly, perhaps, clearly, probably</em>).</li>
+                            <li><em>6.4 Comment Adverbs:</em> Express speaker attitude (<em>luckily, fortunately, unfortunately</em>).</li>
+                            <li><em>6.5 Linking Adverbs:</em> Connect clauses/ideas logically (<em>however, firstly, therefore, for example</em>).</li>
+                        </ul>
+                    </li>
+                    <li><strong>7. Comparing Intensifiers with Adverbs of Degree:</strong> Degree adverbs indicate extent/amount (<em>"To what extent?"</em> — e.g., <em>almost ready, too hot</em>), whereas intensifiers strengthen emotional/gradable force (<em>"How strongly?"</em> — e.g., <em>very happy, extremely</em>). <em>Almost</em> is purely a degree adverb, while <em>very</em> serves both roles.</li>
+                </ul>
+
+                <h1>III. FORM OF ADVERBS AND ADVERB FORMATIONS</h1>
+                <ul>
+                    <li><strong>Simple Adverbs:</strong> Basic words with no special endings (<em>here, there, how, then, now, quite, still</em>).</li>
+                    <li><strong>Derived Adverbs (5 Common Formations):</strong>
+                        <ol>
+                            <li><em>Adjective + -ly:</em> quick → quickly, careful → carefully, happy → happily, real → really.</li>
+                            <li><em>Noun + -ly:</em> day → daily, week → weekly, month → monthly, year → yearly.</li>
+                            <li><em>Noun + -ways / -wards / -wise:</em> sideways, homewards, clockwise.</li>
+                            <li><em>A- + Noun:</em> ahead, abroad, asleep.</li>
+                            <li><em>In/Out + Noun:</em> inside, outdoors.</li>
+                        </ol>
+                    </li>
+                    <li><strong>Compound & Phrase Adverbs:</strong> <em>However, otherwise, anywhere, therefore, at once, at last, at least</em>.</li>
+                    <li><strong>Form vs. Meaning Shifts:</strong> Same form & meaning (<em>run fast, buy cheap/cheaply</em>) vs. different meaning (<em>stopped short</em> = abruptly vs. <em>arrive shortly</em> = soon; <em>works hard</em> = diligently vs. <em>hardly works</em> = almost not at all).</li>
+                </ul>
+
+                <h1>IV. COMPARISON OF ADVERBS</h1>
+                <ul>
+                    <li><strong>Short Adverbs (1–2 syllables):</strong> Add <em>-er / -est</em> (<em>early → earlier → earliest; fast → faster → fastest</em>).</li>
+                    <li><strong>Long Adverbs (2+ syllables in -ly):</strong> Use <em>more/less</em> and <em>(the) most/least</em> (<em>quickly → more quickly → most quickly</em>).</li>
+                    <li><strong>Positive Degree:</strong> <em>as + adverb + as</em> (<em>sings as sweetly as her sister</em>).</li>
+                    <li><strong>Irregular Forms:</strong> <em>well → better → best</em>; <em>badly → worse → worst</em>; <em>far → farther/further → farthest/furthest</em>; <em>late → later → latest</em>; <em>little → less → least</em>; <em>much → more → most</em>.</li>
+                </ul>
+
+                <h1>V. INVERSION AFTER THE ADVERB</h1>
+                <ol>
+                    <li><strong>Directional Particles & Here/There:</strong> <em>Here / There / Up / Down / Off + Verb + Noun Subject</em> (<em>Here comes a new chance; Down sat Leo</em>). <strong>No inversion with pronoun subjects</strong> (<em>Here it comes; There she goes</em>).</li>
+                    <li><strong>Place Adverbials (Descriptive Writing):</strong> Long prepositional place phrases + Verb + Noun Subject (<em>On the crowded street stood a tall clock tower</em>).</li>
+                    <li><strong>Negative, Limiting & Focus Adverbials:</strong> <em>Never, Rarely, Only then, So/Such + Auxiliary + Subject + Main Verb</em> (<em>Never have I experienced such a thing; Rarely does she go out at night</em>).</li>
+                    <li><strong>Sentence-Rebuilding & Linking Adverbials:</strong>
+                        <ul>
+                            <li><em>4.1 Sentence-Rebuilding:</em> Inversion occurs in the main clause after <em>Not until / Only when / Only if</em> (<em>Not until they met Emma did they believe in joy</em>).</li>
+                            <li><em>4.2 Linking Adverbials:</em> <em>Hardly had I arrived home when...; Not only did she win...; No sooner had we left than...</em></li>
+                        </ul>
+                    </li>
+                </ol>
+            `,
+            canvaTitle: "Slide Thuyết Trình Canva — Adverbs (Group 4)",
+            canvaUrl: "https://www.canva.com/design/DAHWTp9gfEc/cy9QDjKUFnXuhphKrEjWTQ/edit",
+            pdfTitle: "15-Question Test (bài tập nph.docx) & GROUP 4 - NGỮ PHÁP HỌC.pdf",
+            pdfUrl: "",
+            pdfDataUri: "",
+            mindmap: {
+                id: "root",
+                text: "ADVERBS",
+                badge: "GRAMMAR CORE • EN4218P02",
+                note: "Word class modifying verbs, adjectives, other adverbs, or entire clauses.",
+                color: "indigo",
+                collapsed: false,
+                children: [
+                    {
+                        id: "sec1",
+                        text: "1. Core Definition & Units",
+                        badge: "SECTION I",
+                        note: "Scope of circumstantial modification, heterogeneous nature & 3 structural levels.",
+                        color: "rose",
+                        collapsed: false,
+                        children: [
+                            {
+                                id: "sec1-1",
+                                text: "Definition",
+                                badge: "SCOPE",
+                                note: "Modifies verbs, adjectives, other adverbs, or entire clauses by adding circumstantial details regarding Manner, Place, Time, Frequency, and Degree.",
+                                collapsed: false,
+                                children: []
+                            },
+                            {
+                                id: "sec1-2",
+                                text: "Heterogeneous Class & Units",
+                                badge: "LEVELS",
+                                note: "Word (softly), Phrase (very quickly, in a soft voice), and Clause (whenever she has a cold); includes intensifiers, negative particles, and conjuncts.",
+                                collapsed: false,
+                                children: []
+                            }
+                        ]
+                    },
+                    {
+                        id: "sec2",
+                        text: "2. Functional Classifications",
+                        badge: "SECTION II",
+                        note: "5 primary semantic types, 5 discourse/stance sub-classes & intensifier distinction.",
+                        color: "indigo",
+                        collapsed: false,
+                        children: [
+                            {
+                                id: "sec2-1",
+                                text: "Primary Types (5)",
+                                badge: "CORE SEMANTICS",
+                                note: "Manner (quietly, fast) • Place (here, abroad) • Time (yesterday, soon) • Frequency (always, rarely) • Degree (fairly, too, completely)",
+                                collapsed: false,
+                                children: [
+                                    {
+                                        id: "sec2-1-1",
+                                        text: "Manner",
+                                        badge: "HOW?",
+                                        note: "quietly, fast, in a hurry — Denotes the way an action is performed; usually placed after verb/object.",
+                                        collapsed: false,
+                                        children: []
+                                    },
+                                    {
+                                        id: "sec2-1-2",
+                                        text: "Place",
+                                        badge: "WHERE?",
+                                        note: "here, abroad, in the garden — Indicates location or direction; follows Manner and precedes Time.",
+                                        collapsed: false,
+                                        children: []
+                                    },
+                                    {
+                                        id: "sec2-1-3",
+                                        text: "Time",
+                                        badge: "WHEN / HOW LONG?",
+                                        note: "yesterday, for a year, soon — Expresses definite time, duration, or indefinite time with flexible placement.",
+                                        collapsed: false,
+                                        children: []
+                                    },
+                                    {
+                                        id: "sec2-1-4",
+                                        text: "Frequency",
+                                        badge: "HOW OFTEN?",
+                                        note: "always, rarely, sometimes — Typically mid-position (before main verbs, after 'be').",
+                                        collapsed: false,
+                                        children: []
+                                    },
+                                    {
+                                        id: "sec2-1-5",
+                                        text: "Degree",
+                                        badge: "TO WHAT EXTENT?",
+                                        note: "fairly, too, completely — Shows intensity or extent; usually precedes the modified word.",
+                                        collapsed: false,
+                                        children: []
+                                    }
+                                ]
+                            },
+                            {
+                                id: "sec2-2",
+                                text: "Specialized Sub-Classes (5)",
+                                badge: "DISCOURSE & STANCE",
+                                note: "Focus (only, especially) • Viewpoint (economically) • Truth (certainly, perhaps) • Comment (fortunately) • Linking (however, therefore)",
+                                collapsed: false,
+                                children: [
+                                    {
+                                        id: "sec2-2-1",
+                                        text: "Focus & Viewpoint",
+                                        badge: "SCOPE & ANGLE",
+                                        note: "Focus: only, especially (highlights info) | Viewpoint: economically, personally (answers 'From what point of view?').",
+                                        collapsed: false,
+                                        children: []
+                                    },
+                                    {
+                                        id: "sec2-2-2",
+                                        text: "Truth & Comment",
+                                        badge: "STANCE & ATTITUDE",
+                                        note: "Truth: certainly, perhaps (degree of certainty) | Comment: fortunately, luckily (speaker's attitude).",
+                                        collapsed: false,
+                                        children: []
+                                    },
+                                    {
+                                        id: "sec2-2-3",
+                                        text: "Linking Adverbs",
+                                        badge: "COHESION",
+                                        note: "however, therefore, firstly — Connects clauses and shows logical relations (contrast, result, sequence).",
+                                        collapsed: false,
+                                        children: []
+                                    }
+                                ]
+                            },
+                            {
+                                id: "sec2-3",
+                                text: "Intensifier vs. Degree",
+                                badge: "KEY DISTINCTION",
+                                note: "Degree adverbs measure extent ('To what extent?' — e.g., almost ready, too hot) vs. Intensifiers strengthen force ('How strongly?' — e.g., very happy, extremely).",
+                                collapsed: false,
+                                children: []
+                            }
+                        ]
+                    },
+                    {
+                        id: "sec3",
+                        text: "3. Forms & Comparisons",
+                        badge: "SECTIONS III & IV",
+                        note: "Morphological derivations, form-meaning shifts & comparative/superlative degrees.",
+                        color: "amber",
+                        collapsed: false,
+                        children: [
+                            {
+                                id: "sec3-1",
+                                text: "Form: Simple & Derived",
+                                badge: "MORPHOLOGY",
+                                note: "Simple adverbs (here, now, quite) • Derived adverbs (5 ways): Adj+ly, N+ly, N+ways/wards/wise, A+N, In/out+N.",
+                                collapsed: false,
+                                children: []
+                            },
+                            {
+                                id: "sec3-2",
+                                text: "Compound, Phrase & Meaning Shifts",
+                                badge: "FORM VS. MEANING",
+                                note: "Compound & Phrase (however, anywhere, at once). Same form as adj (run fast). Adding -ly can dramatically change meaning: short (abruptly) vs. shortly (soon); hard vs. hardly.",
+                                collapsed: false,
+                                children: []
+                            },
+                            {
+                                id: "sec3-3",
+                                text: "Comparison of Adverbs",
+                                badge: "DEGREES",
+                                note: "Short adverbs add -er/-est (early → earlier → earliest) • Long adverbs use more/most (more quickly) • Irregular forms: well/better/best, badly/worse/worst, far/farther/further.",
+                                collapsed: false,
+                                children: []
+                            }
+                        ]
+                    },
+                    {
+                        id: "sec4",
+                        text: "4. Inversion After Adverb",
+                        badge: "SECTION V",
+                        note: "4 syntactic inversion patterns for emphasis, descriptive style & formal rhetoric.",
+                        color: "emerald",
+                        collapsed: false,
+                        children: [
+                            {
+                                id: "sec4-1",
+                                text: "Particles & Directional Adverbs",
+                                badge: "RULE 1",
+                                note: "Here / There / Up / Down + Verb + Noun Subject (Here comes a new chance). Never occurs with pronoun subjects (Here it comes / There she goes).",
+                                collapsed: false,
+                                children: []
+                            },
+                            {
+                                id: "sec4-2",
+                                text: "Place Adverbs",
+                                badge: "RULE 2",
+                                note: "Long place adverbials + Verb + Noun Subject in descriptive writing (On the crowded street stood a tall clock tower).",
+                                collapsed: false,
+                                children: []
+                            },
+                            {
+                                id: "sec4-3",
+                                text: "Negative, Limiting & Focus Adverbials",
+                                badge: "RULE 3",
+                                note: "Never, Rarely, Only then, So/Such + Auxiliary + Subject + Main Verb (Never have I experienced such a thing).",
+                                collapsed: false,
+                                children: []
+                            },
+                            {
+                                id: "sec4-4",
+                                text: "Sentence-Rebuilding & Linking Adverbials",
+                                badge: "RULE 4",
+                                note: "Not until / Only when / Only if (inversion in main clause) & Hardly...when / Not only...but also / No sooner...than (places adverbial phrase at the beginning).",
+                                collapsed: false,
+                                children: []
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // Kiểm tra xem file HTML có được nhúng sẵn dữ liệu xuất ra hay không
+        let EMBEDDED_CONFIG = window.__EMBEDDED_APP_DATA__ || null;
+        let appState = loadInitialState();
+        let activeTab = 'mindmap';
+
+        // Biến điều khiển Spatial Mindmap & Guided Camera Tour
+        let mindmapTransform = { x: 80, y: 240, scale: 1 };
+        let isDraggingMindmap = false;
+        let dragStart = { x: 0, y: 0 };
+        let selectedNodeId = null;
+        let tourStepIndex = 0; // 0 = Tổng thể, 1..N = Đi sâu vào từng nhánh
+        let lastComputedLayout = { nodes: [], links: [], bounds: null };
+        let demoSlideIndex = 0;
+
+        function loadInitialState() {
+            if (EMBEDDED_CONFIG) {
+                return JSON.parse(JSON.stringify(EMBEDDED_CONFIG));
+            }
+            try {
+                const saved = localStorage.getItem('dochub_group4_adverbs_v2');
+                if (saved) {
+                    return { ...JSON.parse(JSON.stringify(DEFAULT_STATE)), ...JSON.parse(saved) };
+                }
+            } catch (e) {
+                console.warn("Không thể đọc localStorage:", e);
+            }
+            return JSON.parse(JSON.stringify(DEFAULT_STATE));
+        }
+
+        function persistState() {
+            try {
+                localStorage.setItem('dochub_group4_adverbs_v2', JSON.stringify(appState));
+            } catch (e) {
+                console.warn("Dữ liệu lớn vượt quá giới hạn localStorage, chỉ lưu trên phiên hiện tại.");
+            }
+        }
+
+        // =========================================================================
+        // 2. KHỞI TẠO GIAO DIỆN KHI TẢI TRANG
+        // =========================================================================
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            
+            // Tạo file PDF mẫu tóm tắt báo cáo Nhóm 4 nếu chưa tải PDF gốc lên
+            if (!appState.pdfUrl && !appState.pdfDataUri) {
+                appState.pdfDataUri = generateSamplePdfDataUri();
+            }
+
+            renderAllViews();
+            renderPracticeQuiz();
+            setupMindmapInteractions();
+            updateExpandCollapseBtnLabel();
+
+            // Tự động căn khung toàn cảnh Mindmap khi mở trang
+            setTimeout(() => {
+                fitMindmapOverview(false);
+            }, 80);
+        });
+
+        function renderAllViews() {
+            // Cập nhật tiêu đề chung
+            document.getElementById('projectTitleDisplay').textContent = appState.title;
+            document.getElementById('projectSubtitleDisplay').textContent = appState.subtitle;
+
+            // Cập nhật thẻ tóm tắt trên Dashboard
+            document.getElementById('dash-word-name').textContent = appState.wordTitle;
+            document.getElementById('dash-canva-name').textContent = appState.canvaTitle;
+            document.getElementById('dash-pdf-name').textContent = appState.pdfTitle;
+            document.getElementById('dash-mindmap-count').textContent = `${countMindmapNodes(appState.mindmap)} nhánh nội dung`;
+
+            // Render từng thành phần
+            renderWordSection();
+            renderCanvaSection();
+            renderPdfSection();
+            renderMindmap();
+        }
+
+        // =========================================================================
+        // 7. XỬ LÝ BÀI TẬP 15 CÂU TƯƠNG TÁC (bài tập nph.docx) & TÀI LIỆU PDF
+        // =========================================================================
+        const PRACTICE_QUIZ_DATA = {
+            part1: [
+                { id: 1, q: "Simple adverbs are words that do not have a specific ending, such as: here, there, now, then.", ans: "T", note: "True — Simple adverbs are basic lexical items without derivational affixes." },
+                { id: 2, q: "Adverbs ending in -ly are always formed from adjectives and never from nouns.", ans: "F", note: "False — Adverbs like daily, weekly, monthly, yearly are formed by adding -ly to nouns." },
+                { id: 3, q: "Words like daily, weekly, and monthly can function as both adjectives and adverbs.", ans: "T", note: "True — e.g., 'a monthly magazine' (adj) vs. 'She gets paid monthly' (adv)." },
+                { id: 4, q: "The suffixes -ways, -wards, and -wise can all be used to form adverbs from nouns.", ans: "T", note: "True — e.g., sideways, homewards, clockwise." },
+                { id: 5, q: "Hard and hardly have the same meaning and can be used interchangeably in all situations.", ans: "F", note: "False — 'hard' means with great effort/diligently, whereas 'hardly' means almost not at all." }
+            ],
+            part2: [
+                {
+                    id: 6,
+                    q: "Which adverb is formed by adding -ly to an adjective?",
+                    options: { A: "daily", B: "quickly", C: "sideways", D: "inside" },
+                    ans: "B",
+                    note: "B. quickly (quick [adj] + -ly). 'daily' is Noun + -ly."
+                },
+                {
+                    id: 7,
+                    q: "Which group consists of adverbs formed with -ways / -wards / -wise?",
+                    options: { A: "quickly, carefully, happily", B: "daily, weekly, monthly", C: "homewards, clockwise, sideways", D: "inside, abroad, asleep" },
+                    ans: "C",
+                    note: "C. homewards, clockwise, sideways."
+                },
+                {
+                    id: 8,
+                    q: "In the sentence: \"He is a fast runner. He runs fast.\", the word fast is:",
+                    options: { A: "an adjective in the first sentence and an adverb in the second", B: "an adjective in both sentences", C: "an adverb in both sentences", D: "an adverb in the first sentence and an adjective in the second" },
+                    ans: "A",
+                    note: "A. 'fast' modifies the noun 'runner' (adjective) and the verb 'runs' (adverb)."
+                },
+                {
+                    id: 9,
+                    q: "Which pair of words does NOT have the same meaning?",
+                    options: { A: "cheap — cheaply", B: "fair — fairly", C: "hard — hardly", D: "slow — slowly" },
+                    ans: "C",
+                    note: "C. hard (diligently) vs. hardly (almost not)."
+                },
+                {
+                    id: 10,
+                    q: "Which of the following is NOT an adverb?",
+                    options: { A: "carefully", B: "friendly", C: "beautifully", D: "quietly" },
+                    ans: "B",
+                    note: "B. friendly is an adjective (Noun 'friend' + -ly)."
+                }
+            ],
+            part3: [
+                {
+                    id: 11,
+                    label: "11 (Part III.1)",
+                    prompt: "\"Fast\" can be both an adjective and an adverb. Write one sentence using it as an adjective and one as an adverb.",
+                    placeholder: "Nhập câu ví dụ của bạn...",
+                    modelAnswer: "Adjective: \"He is a fast runner.\" — Adverb: \"He runs fast.\""
+                },
+                {
+                    id: 12,
+                    label: "12 (Part III.2)",
+                    prompt: "Explain in 1 sentence why we say \"He works hard\" but NOT \"He works hardly\".",
+                    placeholder: "Nhập lời giải thích ngắn gọn...",
+                    modelAnswer: "\"Hard\" means with great effort; \"hardly\" means almost not."
+                },
+                {
+                    id: 13,
+                    label: "13 (Part III.3)",
+                    prompt: "Change this sentence to use an adverb: \"She is a careful driver.\"",
+                    placeholder: "Viết lại câu sử dụng trạng từ...",
+                    modelAnswer: "\"She drives carefully.\""
+                },
+                {
+                    id: 14,
+                    label: "14 (Part III.4)",
+                    prompt: "Correct the mistake: \"The baby slept peaceful all night.\"",
+                    placeholder: "Sửa lỗi sai trong câu...",
+                    modelAnswer: "\"The baby slept peacefully all night.\""
+                },
+                {
+                    id: 15,
+                    label: "15 (Part III.5)",
+                    prompt: "Write one sentence using the adverb form of the word \"good\".",
+                    placeholder: "Đặt câu với trạng từ của 'good'...",
+                    modelAnswer: "\"She speaks English well.\""
+                }
+            ]
+        };
+
+        let userQuizSelections = {};
+        let isQuizGraded = false;
+
+        function switchRefSubTab(mode) {
+            const quizView = document.getElementById('refSubViewQuiz');
+            const resView = document.getElementById('refSubViewResources');
+            const quizBtn = document.getElementById('subTabQuizBtn');
+            const resBtn = document.getElementById('subTabPdfBtn');
+
+            if (mode === 'quiz') {
+                quizView.classList.remove('hidden');
+                resView.classList.add('hidden');
+                quizBtn.classList.add('bg-rose-600', 'text-white', 'shadow-sm');
+                quizBtn.classList.remove('text-slate-600');
+                resBtn.classList.remove('bg-rose-600', 'text-white', 'shadow-sm');
+                resBtn.classList.add('text-slate-600');
+            } else {
+                quizView.classList.add('hidden');
+                resView.classList.remove('hidden');
+                resBtn.classList.add('bg-rose-600', 'text-white', 'shadow-sm');
+                resBtn.classList.remove('text-slate-600');
+                quizBtn.classList.remove('bg-rose-600', 'text-white', 'shadow-sm');
+                quizBtn.classList.add('text-slate-600');
+            }
+        }
+
+        function selectQuizOption(qId, val) {
+            userQuizSelections[qId] = val;
+            renderPracticeQuiz();
+        }
+
+        function renderPracticeQuiz() {
+            const p1El = document.getElementById('quizPart1Container');
+            const p2El = document.getElementById('quizPart2Container');
+            const p3El = document.getElementById('quizPart3Container');
+            if (!p1El || !p2El || !p3El) return;
+
+            // Render Part I (True/False)
+            p1El.innerHTML = PRACTICE_QUIZ_DATA.part1.map(item => {
+                const chosen = userQuizSelections[item.id];
+                const isCorrect = isQuizGraded && chosen === item.ans;
+                const isWrong = isQuizGraded && chosen && chosen !== item.ans;
+
+                const btnStyle = (opt) => {
+                    if (isQuizGraded) {
+                        if (opt === item.ans) return "bg-emerald-600 text-white border-emerald-600";
+                        if (chosen === opt && opt !== item.ans) return "bg-rose-600 text-white border-rose-600";
+                        return "bg-slate-50 text-slate-400 border-slate-200";
+                    }
+                    return chosen === opt
+                        ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50";
+                };
+
+                return `
+                    <div class="p-4 rounded-xl border ${isCorrect ? 'border-emerald-300 bg-emerald-50/30' : (isWrong ? 'border-rose-300 bg-rose-50/30' : 'border-slate-200 bg-slate-50/40')}">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <p class="text-sm font-medium text-slate-800"><span class="font-bold text-indigo-600 mr-1.5">${item.id}.</span> ${escapeHtml(item.q)}</p>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button onclick="selectQuizOption(${item.id}, 'T')" class="px-3.5 py-1.5 rounded-lg border text-xs font-bold transition ${btnStyle('T')}">T (True)</button>
+                                <button onclick="selectQuizOption(${item.id}, 'F')" class="px-3.5 py-1.5 rounded-lg border text-xs font-bold transition ${btnStyle('F')}">F (False)</button>
+                            </div>
+                        </div>
+                        ${isQuizGraded ? `<div class="mt-2.5 text-xs font-medium text-emerald-800 bg-emerald-100/70 px-3 py-1.5 rounded-lg">✓ Answer: ${escapeHtml(item.note)}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            // Render Part II (MCQ)
+            p2El.innerHTML = PRACTICE_QUIZ_DATA.part2.map(item => {
+                const chosen = userQuizSelections[item.id];
+                const optsHtml = Object.entries(item.options).map(([key, text]) => {
+                    let cls = "border-slate-200 bg-white text-slate-700 hover:border-purple-400";
+                    if (isQuizGraded) {
+                        if (key === item.ans) cls = "border-emerald-500 bg-emerald-50 text-emerald-900 font-semibold";
+                        else if (chosen === key && key !== item.ans) cls = "border-rose-500 bg-rose-50 text-rose-900";
+                        else cls = "border-slate-200 bg-slate-50/60 text-slate-400";
+                    } else if (chosen === key) {
+                        cls = "border-purple-600 bg-purple-50 text-purple-900 font-semibold shadow-sm";
+                    }
+                    return `
+                        <button onclick="selectQuizOption(${item.id}, '${key}')" class="text-left px-3.5 py-2.5 rounded-xl border text-xs sm:text-sm transition flex items-center gap-2 ${cls}">
+                            <span class="w-6 h-6 rounded-full border border-current flex items-center justify-center text-xs font-bold shrink-0">${key}</span>
+                            <span>${escapeHtml(text)}</span>
+                        </button>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/40 space-y-3">
+                        <p class="text-sm font-semibold text-slate-800"><span class="font-bold text-purple-600 mr-1.5">${item.id}.</span> ${escapeHtml(item.q)}</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${optsHtml}</div>
+                        ${isQuizGraded ? `<div class="text-xs font-medium text-emerald-800 bg-emerald-100/70 px-3 py-1.5 rounded-lg">✓ Key: ${escapeHtml(item.note)}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            // Render Part III (Fill in the Blanks)
+            p3El.innerHTML = PRACTICE_QUIZ_DATA.part3.map(item => {
+                const currentText = userQuizSelections[item.id] || "";
+                return `
+                    <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/40 space-y-2.5">
+                        <p class="text-sm font-semibold text-slate-800"><span class="font-bold text-amber-600 mr-1.5">${item.label}:</span> ${escapeHtml(item.prompt)}</p>
+                        <input type="text" value="${escapeHtml(currentText)}" oninput="userQuizSelections[${item.id}] = this.value" placeholder="${item.placeholder}" class="w-full px-3.5 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-amber-500">
+                        ${isQuizGraded ? `<div class="text-xs font-medium text-emerald-900 bg-emerald-100/80 px-3 py-2 rounded-lg"><strong>Model Answer:</strong> ${escapeHtml(item.modelAnswer)}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function gradePracticeQuiz() {
+            isQuizGraded = true;
+            let score = 0;
+            const totalObj = PRACTICE_QUIZ_DATA.part1.length + PRACTICE_QUIZ_DATA.part2.length;
+
+            PRACTICE_QUIZ_DATA.part1.forEach(q => {
+                if (userQuizSelections[q.id] === q.ans) score++;
+            });
+            PRACTICE_QUIZ_DATA.part2.forEach(q => {
+                if (userQuizSelections[q.id] === q.ans) score++;
+            });
+
+            const banner = document.getElementById('quizScoreBanner');
+            document.getElementById('quizScoreBadge').textContent = `${score}/${totalObj}`;
+            document.getElementById('quizScoreHeadline').textContent = `Bạn đạt ${score}/${totalObj} câu trắc nghiệm (Phần I & II)!`;
+            banner.classList.remove('hidden');
+
+            renderPracticeQuiz();
+            showToast(`Đã chấm điểm (${score}/${totalObj}) và mở toàn bộ đáp án chi tiết!`);
+        }
+
+        function resetPracticeQuiz() {
+            userQuizSelections = {};
+            isQuizGraded = false;
+            document.getElementById('quizScoreBanner').classList.add('hidden');
+            renderPracticeQuiz();
+            showToast("Đã đặt lại bài tập 15 câu!");
+        }
+
+        function generateSamplePdfDataUri() {
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                doc.setFillColor(30, 58, 138);
+                doc.rect(0, 0, 210, 36, 'F');
+                
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(15);
+                doc.text("DONG THAP UNIVERSITY - GROUP 4 (EN4218P02)", 15, 16);
+                doc.setFontSize(12);
+                doc.text("TOPIC: ADVERBS IN THE ENGLISH LANGUAGE", 15, 26);
+                
+                doc.setTextColor(30, 41, 59);
+                doc.setFontSize(12);
+                doc.text("Advisor: ThS. Le Nhut Long | Academic Year: 2026 - 2027", 15, 48);
+                
+                doc.setFontSize(10.5);
+                doc.setTextColor(71, 85, 105);
+                const lines1 = doc.splitTextToSize(
+                    "Note: Click 'Tai len file .pdf' at the top right of this section to load your original 20-page file (GROUP 4 - NGU PHAP HOC (1).pdf) directly into this viewer, then click 'Xuat Web Chia Se' to bundle it into a standalone link.",
+                    180
+                );
+                doc.text(lines1, 15, 58);
+
+                doc.setTextColor(30, 41, 59);
+                doc.setFontSize(12);
+                doc.text("Summary of Report Sections:", 15, 84);
+
+                doc.setFontSize(10.5);
+                doc.setTextColor(51, 65, 85);
+                doc.text("I. Definition: Core scope of modification, heterogeneous word class, Word/Phrase/Clause.", 18, 94);
+                doc.text("II. Classification: Manner, Place, Time, Frequency, Degree + Focus, Viewpoint, Truth, Comment, Linking.", 18, 102);
+                doc.text("III. Form & Formation: Simple, Derived (5 patterns), Compound/Phrase & Meaning shifts.", 18, 110);
+                doc.text("IV. Comparison: Short (-er/-est), Long (more/most), Positive (as...as) & Irregular adverbs.", 18, 118);
+                doc.text("V. Inversion: Directional particles, Place adverbials, Negative/Limiting & Rebuilding/Linking.", 18, 126);
+
+                doc.setDrawColor(203, 213, 225);
+                doc.line(15, 138, 195, 138);
+
+                doc.setFontSize(10);
+                doc.setTextColor(100, 116, 139);
+                doc.text("Primary Textbook: Le Huy Truong et al. (2015). A Grammar of The English Language.", 15, 148);
+
+                return doc.output('datauristring');
+            } catch (e) {
+                console.error("Không thể tạo PDF mẫu:", e);
+                return "";
+            }
+        }
+
+        function renderPdfSection() {
+            document.getElementById('pdfFileTitle').textContent = appState.pdfTitle;
+            const dashPdf = document.getElementById('dashPdfContainer');
+            const fullPdf = document.getElementById('fullPdfContainer');
+
+            const source = appState.pdfUrl || appState.pdfDataUri;
+
+            if (source) {
+                dashPdf.innerHTML = `<iframe src="${source}#toolbar=0&navpanes=0" class="w-full h-full border-0"></iframe>`;
+                fullPdf.innerHTML = `<iframe src="${source}" class="w-full h-full border-0"></iframe>`;
+            } else {
+                const emptyMsg = `<div class="w-full h-full flex items-center justify-center text-slate-500 text-sm p-6 text-center">Chưa có tệp PDF. Vui lòng tải lên tệp .pdf hoặc nhập liên kết.</div>`;
+                dashPdf.innerHTML = emptyMsg;
+                fullPdf.innerHTML = emptyMsg;
+            }
+        }
+
+        function handlePdfUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (file.type !== 'application/pdf' && !file.name.endsWith('.pdf')) {
+                showToast("Vui lòng chọn tệp định dạng .pdf!");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                appState.pdfTitle = file.name;
+                appState.pdfUrl = "";
+                appState.pdfDataUri = e.target.result;
+                persistState();
+                renderAllViews();
+                showToast(`Đã tải lên tài liệu PDF: ${file.name}`);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // =========================================================================
+        // 8. MODAL CÀI ĐẶT & XUẤT FILE HTML ĐỘC LẬP ĐỂ CHIA SẺ LINK
+        // =========================================================================
+        function openSettingsModal() {
+            document.getElementById('cfgProjectTitle').value = appState.title;
+            document.getElementById('cfgProjectSubtitle').value = appState.subtitle;
+            document.getElementById('cfgWordUrl').value = appState.wordMode === 'iframe' ? appState.wordUrl : '';
+            document.getElementById('cfgCanvaUrl').value = appState.canvaUrl || '';
+            document.getElementById('cfgPdfUrl').value = appState.pdfUrl || '';
+            document.getElementById('cfgMindmapJson').value = JSON.stringify(appState.mindmap, null, 2);
+
+            document.getElementById('settingsModal').classList.remove('hidden');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.add('hidden');
+        }
+
+        function saveAllSettings() {
+            appState.title = document.getElementById('cfgProjectTitle').value.trim() || DEFAULT_STATE.title;
+            appState.subtitle = document.getElementById('cfgProjectSubtitle').value.trim() || DEFAULT_STATE.subtitle;
+
+            const wordUrlInput = document.getElementById('cfgWordUrl').value.trim();
+            if (wordUrlInput) {
+                appState.wordMode = 'iframe';
+                appState.wordUrl = wordUrlInput;
+                appState.wordTitle = "Tài liệu Google Docs / Trực tuyến";
+            }
+
+            const canvaInput = document.getElementById('cfgCanvaUrl').value.trim();
+            appState.canvaUrl = canvaInput;
+            if (canvaInput) {
+                appState.canvaTitle = "Slide Thuyết Trình Canva";
+            }
+
+            const pdfUrlInput = document.getElementById('cfgPdfUrl').value.trim();
+            if (pdfUrlInput) {
+                appState.pdfUrl = pdfUrlInput;
+                appState.pdfTitle = "Tài liệu PDF trực tuyến";
+            }
+
+            try {
+                const parsedMindmap = JSON.parse(document.getElementById('cfgMindmapJson').value);
+                if (parsedMindmap && parsedMindmap.text) {
+                    appState.mindmap = parsedMindmap;
+                }
+            } catch (e) {
+                showToast("Cấu trúc JSON Mindmap chưa hợp lệ, giữ nguyên sơ đồ cũ.");
+            }
+
+            persistState();
+            renderAllViews();
+            closeSettingsModal();
+            showToast("Đã lưu toàn bộ cấu hình nội dung!");
+        }
+
+        function resetDefaultMindmap() {
+            document.getElementById('cfgMindmapJson').value = JSON.stringify(DEFAULT_STATE.mindmap, null, 2);
+            showToast("Đã khôi phục dữ liệu Mindmap mẫu!");
+        }
+
+        function resetAllToSample() {
+            localStorage.removeItem('dochub_group4_adverbs_v2');
+            EMBEDDED_CONFIG = null;
+            appState = JSON.parse(JSON.stringify(DEFAULT_STATE));
+            appState.pdfDataUri = generateSamplePdfDataUri();
+            renderAllViews();
+            updateExpandCollapseBtnLabel();
+            fitMindmapOverview(true);
+            closeSettingsModal();
+            showToast("Đã đặt lại toàn bộ về dữ liệu chuẩn của Nhóm 4!");
+        }
+
+        // Xuất ra 1 file HTML duy nhất chứa sẵn toàn bộ dữ liệu của người dùng
+        function exportStandaloneHTML() {
+            const docClone = document.documentElement.cloneNode(true);
+            
+            // Xóa dữ liệu đang render tạm thời để tránh trùng lặp
+            const oldInjected = docClone.querySelector('#injected-state-script');
+            if (oldInjected) oldInjected.remove();
+
+            // Chèn script chứa toàn bộ state hiện tại (bao gồm nội dung Word, link Canva, Mindmap, PDF)
+            const stateScript = document.createElement('script');
+            stateScript.id = 'injected-state-script';
+            stateScript.textContent = `window.__EMBEDDED_APP_DATA__ = ${JSON.stringify(appState)};`;
+            
+            const head = docClone.querySelector('head');
+            head.insertBefore(stateScript, head.firstChild);
+
+            const fullHtml = '<!DOCTYPE html>\n' + docClone.outerHTML;
+            const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'trang-trinh-bay-tai-lieu.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showToast("Đã tải xuống file HTML đóng gói sẵn dữ liệu! Bạn có thể tải file này lên Netlify Drop, Vercel hoặc GitHub Pages để lấy link chia sẻ.");
+        }
+
+        // =========================================================================
+        // 9. TIỆN ÍCH HỖ TRỢ
+        // =========================================================================
+        function toggleFullscreen(elementId) {
+            const elem = document.getElementById(elementId);
+            if (!elem) return;
+            if (!document.fullscreenElement) {
+                elem.requestFullscreen().catch(err => {
+                    showToast("Trình duyệt không cho phép mở toàn màn hình tự động.");
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toastNotification');
+            const msgEl = document.getElementById('toastMessage');
+            msgEl.textContent = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            
+            clearTimeout(window.__toastTimer);
+            window.__toastTimer = setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3800);
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
